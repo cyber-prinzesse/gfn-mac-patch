@@ -19,8 +19,8 @@ BACKUP_DIR = GFN / "gfn-mac-patch-backups"
 
 PRESETS = {
     "stable": {
-        "description": "HDR off, bitrate capped at 35 Mbps, balanced profile — stability over peak quality",
-        "streamingProfiles": "balanced",
+        "description": "HDR off, bitrate capped at 35 Mbps — stability over peak quality",
+        "streamingProfiles": "custom",
         "custom": {
             "hdrStreaming": False,
             "maxBitrateAuto": False,
@@ -33,7 +33,7 @@ PRESETS = {
     },
     "competitive": {
         "description": "Like stable but slightly higher cap (45 Mbps) for 1080p60 headroom",
-        "streamingProfiles": "balanced",
+        "streamingProfiles": "custom",
         "custom": {
             "hdrStreaming": False,
             "maxBitrateAuto": False,
@@ -46,7 +46,8 @@ PRESETS = {
     },
     "bufferbloat": {
         "description": "For GFN Session Report Download≈0: HDR off, 15 Mbps cap, 60 fps — leave headroom on bloated Wi-Fi",
-        "streamingProfiles": "balanced",
+        # Must be "custom" so customProfile maxBitrate/HDR are what the client streams with.
+        "streamingProfiles": "custom",
         "custom": {
             "hdrStreaming": False,
             "maxBitrateAuto": False,
@@ -109,12 +110,40 @@ def apply_preset(name: str) -> None:
     data = load()
     bak = backup()
     cfg = data.setdefault("appSettingsConfig", {})
-    cfg["streamingProfiles"] = preset["streamingProfiles"]
+    profile_name = preset["streamingProfiles"]
+    cfg["streamingProfiles"] = profile_name
     custom = cfg.setdefault("customProfile", {})
     custom.update(preset["custom"])
-    # Ensure custom profile is selected when present
+    # Keep nested selectors in sync — GFN reads both top-level and sharedSettings.
     shared = custom.setdefault("sharedSettings", {})
-    shared["streamingProfiles"] = "custom"
+    shared["streamingProfiles"] = profile_name
+    # #region agent log
+    try:
+        import time as _time
+        _log = Path.home() / ".cursor" / "debug-321d63.log"
+        with _log.open("a") as _f:
+            _f.write(
+                json.dumps(
+                    {
+                        "sessionId": "321d63",
+                        "runId": "patch-apply",
+                        "hypothesisId": "H4",
+                        "location": "gfn-patch-settings.py:apply_preset",
+                        "message": "wrote streaming profile selectors",
+                        "data": {
+                            "preset": name,
+                            "streamingProfiles": profile_name,
+                            "maxBitrate": custom.get("maxBitrate"),
+                            "hdrStreaming": custom.get("hdrStreaming"),
+                        },
+                        "timestamp": int(_time.time() * 1000),
+                    }
+                )
+                + "\n"
+            )
+    except Exception:
+        pass
+    # #endregion
     STORAGE.write_text(json.dumps(data, indent=2) + "\n")
     print(f"applied preset={name}")
     print(f"backup={bak}")
