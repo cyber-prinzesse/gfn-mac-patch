@@ -58,6 +58,19 @@ PRESETS = {
             "bitDepth": 8,
         },
     },
+    "telekom": {
+        "description": "Telekom Speedport Wi-Fi: HDR off, 10 Mbps cap — when uplink responsiveness is Low (~0.5–1s)",
+        "streamingProfiles": "custom",
+        "custom": {
+            "hdrStreaming": False,
+            "maxBitrateAuto": False,
+            "maxBitrate": 10000,
+            "fps": 60,
+            "reflex": True,
+            "maxPacketSize": 1432,
+            "bitDepth": 8,
+        },
+    },
 }
 
 
