@@ -22,7 +22,9 @@ PRESETS = {
         "description": "HDR off, bitrate capped at 35 Mbps — stability over peak quality",
         "streamingProfiles": "custom",
         "custom": {
+            "name": "custom",
             "hdrStreaming": False,
+            "hdrStreamingMode": "OFF",
             "maxBitrateAuto": False,
             "maxBitrate": 35000,
             "fps": 60,
@@ -35,7 +37,9 @@ PRESETS = {
         "description": "Like stable but slightly higher cap (45 Mbps) for 1080p60 headroom",
         "streamingProfiles": "custom",
         "custom": {
+            "name": "custom",
             "hdrStreaming": False,
+            "hdrStreamingMode": "OFF",
             "maxBitrateAuto": False,
             "maxBitrate": 45000,
             "fps": 60,
@@ -45,30 +49,40 @@ PRESETS = {
         },
     },
     "bufferbloat": {
-        "description": "For GFN Session Report Download≈0: HDR off, 15 Mbps cap, 60 fps — leave headroom on bloated Wi-Fi",
+        "description": "For GFN Session Report Download≈0: HDR OFF, 15 Mbps cap, 1080p60 — leave headroom on bloated Wi-Fi",
         # Must be "custom" so customProfile maxBitrate/HDR are what the client streams with.
         "streamingProfiles": "custom",
         "custom": {
+            "name": "custom",
             "hdrStreaming": False,
+            "hdrStreamingMode": "OFF",
             "maxBitrateAuto": False,
             "maxBitrate": 15000,
             "fps": 60,
             "reflex": True,
             "maxPacketSize": 1432,
             "bitDepth": 8,
+            "width": 1920,
+            "height": 1080,
+            "primaryDisplayResolution": {"fps": 60, "width": 1920, "height": 1080},
         },
     },
     "telekom": {
-        "description": "Telekom Speedport Wi-Fi: HDR off, 10 Mbps cap — when uplink responsiveness is Low (~0.5–1s)",
+        "description": "Telekom Speedport Wi-Fi: HDR OFF, 10 Mbps cap, 1080p60 — Low uplink / DFS Wi-Fi",
         "streamingProfiles": "custom",
         "custom": {
+            "name": "custom",
             "hdrStreaming": False,
+            "hdrStreamingMode": "OFF",
             "maxBitrateAuto": False,
             "maxBitrate": 10000,
             "fps": 60,
             "reflex": True,
             "maxPacketSize": 1432,
             "bitDepth": 8,
+            "width": 1920,
+            "height": 1080,
+            "primaryDisplayResolution": {"fps": 60, "width": 1920, "height": 1080},
         },
     },
 }
@@ -101,13 +115,17 @@ def show(data: dict) -> None:
             "customProfile": {
                 k: custom.get(k)
                 for k in (
+                    "name",
                     "fps",
                     "hdrStreaming",
+                    "hdrStreamingMode",
                     "maxBitrate",
                     "maxBitrateAuto",
                     "maxPacketSize",
                     "reflex",
                     "bitDepth",
+                    "width",
+                    "height",
                     "primaryDisplayResolution",
                 )
             },
