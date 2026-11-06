@@ -44,6 +44,19 @@ PRESETS = {
             "bitDepth": 8,
         },
     },
+    "bufferbloat": {
+        "description": "For GFN Session Report Download≈0: HDR off, 15 Mbps cap, 60 fps — leave headroom on bloated Wi-Fi",
+        "streamingProfiles": "balanced",
+        "custom": {
+            "hdrStreaming": False,
+            "maxBitrateAuto": False,
+            "maxBitrate": 15000,
+            "fps": 60,
+            "reflex": True,
+            "maxPacketSize": 1432,
+            "bitDepth": 8,
+        },
+    },
 }
 
 
