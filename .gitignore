@@ -1,0 +1,11 @@
+.DS_Store
+*.pyc
+__pycache__/
+.venv/
+.env
+.env.*
+*.bak
+*.ndjson
+!samples/*.ndjson
+.cursor/
+*.log
