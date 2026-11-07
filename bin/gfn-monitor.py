@@ -53,22 +53,29 @@ def awdl_state() -> dict:
 
 
 def wifi_state() -> dict:
-    sp = sh(
+    # Prefer a bounded system_profiler snippet for channel (airport is stubbed on modern macOS).
+    d: dict = {}
+    out = sh(
         "system_profiler SPAirPortDataType 2>/dev/null | "
-        "awk '/Status: Connected/{c=1} c&&/PHY Mode|Channel|Signal \\/ Noise|Transmit Rate|MCS Index/{print; if(++n>=5) exit}'"
+        "sed -n '/Current Network Information:/,/Other Local Wi-Fi/p' | head -20"
     )
-    d: dict = {"raw": sp.strip()[:400]}
-    m = re.search(r"Channel:\s*(\d+)\s*\(([^)]+)\)", sp)
+    d["raw"] = out.strip()[:400]
+    m = re.search(r"Channel:\s*(.+)", out)
     if m:
-        d["channel"] = int(m.group(1))
-        d["band"] = m.group(2)
-    m = re.search(r"Signal / Noise:\s*(-?\d+)\s*dBm\s*/\s*(-?\d+)\s*dBm", sp)
+        d["channel_line"] = m.group(1).strip()
+        num = re.search(r"(\d+)", m.group(1))
+        if num:
+            d["channel"] = int(num.group(1))
+            d["dfs"] = int(num.group(1)) >= 100
+    m = re.search(r"Signal / Noise:\s*(.+)", out)
     if m:
-        d["rssi"] = int(m.group(1))
-        d["noise"] = int(m.group(2))
-    m = re.search(r"Transmit Rate:\s*(\d+)", sp)
+        d["signal_noise"] = m.group(1).strip()
+    m = re.search(r"Transmit Rate:\s*(.+)", out)
     if m:
-        d["tx_mbps"] = int(m.group(1))
+        d["tx_rate"] = m.group(1).strip()
+    ip = sh("ipconfig getifaddr en0 2>/dev/null").strip()
+    if ip:
+        d["ip"] = ip
     return d
 
 
@@ -100,13 +107,17 @@ def gfn_profile() -> dict:
         custom = cfg.get("customProfile", {})
         return {
             "streamingProfiles": cfg.get("streamingProfiles"),
+            "name": custom.get("name"),
             "fps": custom.get("fps"),
             "hdrStreaming": custom.get("hdrStreaming"),
+            "hdrStreamingMode": custom.get("hdrStreamingMode"),
             "maxBitrate": custom.get("maxBitrate"),
             "maxBitrateAuto": custom.get("maxBitrateAuto"),
             "maxPacketSize": custom.get("maxPacketSize"),
             "reflex": custom.get("reflex"),
             "bitDepth": custom.get("bitDepth"),
+            "width": custom.get("width"),
+            "height": custom.get("height"),
             "primaryDisplayResolution": custom.get("primaryDisplayResolution"),
             "sessionId": (d.get("streamingSessionId") or {}).get("sessionId"),
         }
