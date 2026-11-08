@@ -105,9 +105,56 @@ def backup(data: dict | None = None) -> Path:
     return dest
 
 
+def _empty_custom() -> dict:
+    """Minimal customProfile when GFN has wiped the object to null."""
+    return {
+        "aspectRatio": "(16:9)",
+        "audioMode": 2,
+        "bitDepth": 8,
+        "chromaFormat": 0,
+        "cloudGsync": False,
+        "codec": 0,
+        "dataUsage": 10,
+        "denoise": 0,
+        "description": "gfn-mac-patch custom",
+        "displayDpi": 100,
+        "dlssOverrides": {
+            "fgMode": 0,
+            "fgModel": 0,
+            "rrModel": 0,
+            "srMode": 0,
+            "srModel": 0,
+            "srScale": 100,
+        },
+        "dynamicStreamingMode": 1,
+        "fallbackToLogicalResolution": True,
+        "fps": 60,
+        "hdrStreaming": False,
+        "hdrStreamingMode": "OFF",
+        "hudStreaming": False,
+        "hudStreamingMode": 0,
+        "l4sEnabled": False,
+        "maxBitrate": 10000,
+        "maxBitrateAuto": False,
+        "maxPacketSize": 1432,
+        "name": "custom",
+        "prefilter": 0,
+        "profile": 0,
+        "reflex": True,
+        "sharpen": 0,
+        "vSync": 2,
+        "width": 1920,
+        "height": 1080,
+        "primaryDisplayResolution": {"fps": 60, "width": 1920, "height": 1080},
+        "currentFingerprintMaxDisplay": {"frameRate": 60, "width": 1920, "height": 1080},
+    }
+
+
 def show(data: dict) -> None:
     cfg = data.get("appSettingsConfig", {})
-    custom = cfg.get("customProfile", {})
+    custom = cfg.get("customProfile") or {}
+    if not isinstance(custom, dict):
+        custom = {}
     print(json.dumps(
         {
             "path": str(STORAGE),
@@ -143,10 +190,34 @@ def apply_preset(name: str) -> None:
     cfg = data.setdefault("appSettingsConfig", {})
     profile_name = preset["streamingProfiles"]
     cfg["streamingProfiles"] = profile_name
-    custom = cfg.setdefault("customProfile", {})
+    # GFN often sets customProfile to null — setdefault does NOT replace null.
+    custom = cfg.get("customProfile")
+    if not isinstance(custom, dict):
+        custom = _empty_custom()
+        cfg["customProfile"] = custom
     custom.update(preset["custom"])
-    # Keep nested selectors in sync — GFN reads both top-level and sharedSettings.
+    # Force the keys GFN's streamer actually reads.
+    custom["name"] = "custom"
+    custom["hdrStreamingMode"] = preset["custom"].get("hdrStreamingMode", "OFF")
+    custom["hdrStreaming"] = bool(preset["custom"].get("hdrStreaming", False))
+    custom["maxBitrateAuto"] = False
+    custom["maxBitrate"] = int(preset["custom"].get("maxBitrate", 10000))
+    if "width" in preset["custom"]:
+        custom["width"] = preset["custom"]["width"]
+        custom["height"] = preset["custom"]["height"]
+        custom["primaryDisplayResolution"] = preset["custom"].get(
+            "primaryDisplayResolution",
+            {"fps": 60, "width": custom["width"], "height": custom["height"]},
+        )
+        custom["currentFingerprintMaxDisplay"] = {
+            "frameRate": 60,
+            "width": custom["width"],
+            "height": custom["height"],
+        }
     shared = custom.setdefault("sharedSettings", {})
+    if not isinstance(shared, dict):
+        shared = {}
+        custom["sharedSettings"] = shared
     shared["streamingProfiles"] = profile_name
     # #region agent log
     try:
@@ -165,7 +236,10 @@ def apply_preset(name: str) -> None:
                             "preset": name,
                             "streamingProfiles": profile_name,
                             "maxBitrate": custom.get("maxBitrate"),
-                            "hdrStreaming": custom.get("hdrStreaming"),
+                            "hdrStreamingMode": custom.get("hdrStreamingMode"),
+                            "width": custom.get("width"),
+                            "height": custom.get("height"),
+                            "replaced_null_profile": True,
                         },
                         "timestamp": int(_time.time() * 1000),
                     }
